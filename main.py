@@ -175,7 +175,7 @@ def main(win, width):
 						for spot in row:
 							spot.update_neighbors(grid)
 
-					astar.algorithm(lambda: draw(win, grid, ROWS, width), grid, start, end)
+					astar.astar_algorithm(lambda: draw(win, grid, ROWS, width), grid, start, end)
 
 				if event.key == pygame.K_c:
 					start = None
