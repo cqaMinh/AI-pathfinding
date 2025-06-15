@@ -3,8 +3,12 @@ import math
 from queue import PriorityQueue
 from algorithms import astar, dfs, bfs
 
+pygame.init()
+
 WIDTH = 800
-WIN = pygame.display.set_mode((WIDTH, WIDTH))
+GRID_HEIGHT = 500
+INSTRUCTION_HEIGHT = 100  # Space for instructions
+WIN = pygame.display.set_mode((WIDTH, GRID_HEIGHT + INSTRUCTION_HEIGHT))
 pygame.display.set_caption("A* Path Finding Algorithm")
 
 RED = (255, 0, 0)
@@ -89,39 +93,50 @@ class Spot:
 		return False
 
 
-def make_grid(rows, width):
-	grid = []
-	gap = width // rows
-	for i in range(rows):
-		grid.append([])
-		for j in range(rows):
-			spot = Spot(i, j, gap, rows)
-			grid[i].append(spot)
+def make_grid(gap, width, height):
+    grid = []
+    rows = width // gap
+    cols = height // gap
+    for i in range(rows):
+        grid.append([])
+        for j in range(cols):
+            spot = Spot(i, j, gap, cols)
+            grid[i].append(spot)
+    return grid
 
-	return grid
+def draw_grid(win, gap, width, height):
+    rows = width // gap
+    cols = height // gap
+    for i in range(cols):
+        pygame.draw.line(win, GREY, (0, i * gap), (width, i * gap))
+        for j in range(rows):
+            pygame.draw.line(win, GREY, (j * gap, 0), (j * gap, height))
+
+def draw_instructions(win, grid_height):
+    font = pygame.font.SysFont("consolas", 18)
+    instructions = [
+        "SPACE: Start A*     P: Pause     R: Continue     B: Undo path     C: Clear",
+        "Left Click: Place start/end/barriers     Right Click: Remove start/end/barriers",
+    ]
+
+    for i, text in enumerate(instructions):
+        rendered = font.render(text, True, BLACK)
+        win.blit(rendered, (10, grid_height + 10 + i * 25))
 
 
-def draw_grid(win, rows, width):
-	gap = width // rows
-	for i in range(rows):
-		pygame.draw.line(win, GREY, (0, i * gap), (width, i * gap))
-		for j in range(rows):
-			pygame.draw.line(win, GREY, (j * gap, 0), (j * gap, width))
+def draw(win, grid, gap, width, height):
+    win.fill(WHITE)
+
+    for row in grid:
+        for spot in row:
+            spot.draw(win)
+
+    draw_grid(win, gap, width, height)
+    draw_instructions(win, height)
+    pygame.display.update()
 
 
-def draw(win, grid, rows, width):
-	win.fill(WHITE)
-
-	for row in grid:
-		for spot in row:
-			spot.draw(win)
-
-	draw_grid(win, rows, width)
-	pygame.display.update()
-
-
-def get_clicked_pos(pos, rows, width):
-	gap = width // rows
+def get_clicked_pos(pos, gap):
 	y, x = pos
 
 	row = y // gap
@@ -130,58 +145,77 @@ def get_clicked_pos(pos, rows, width):
 	return row, col
 
 
-def main(win, width):
-	ROWS = 50
-	grid = make_grid(ROWS, width)
+def main(win):
+    GAP = 20
+    grid = make_grid(GAP, WIDTH, GRID_HEIGHT)
 
-	start = None
-	end = None
+    start = None
+    end = None
+    algorithm = None  # Generator
+    paused = False
 
-	run = True
-	while run:
-		draw(win, grid, ROWS, width)
-		for event in pygame.event.get():
-			if event.type == pygame.QUIT:
-				run = False
+    run = True
+    while run:
+        draw(win, grid, GAP, WIDTH, GRID_HEIGHT)
 
-			if pygame.mouse.get_pressed()[0]: # LEFT
-				pos = pygame.mouse.get_pos()
-				row, col = get_clicked_pos(pos, ROWS, width)
-				spot = grid[row][col]
-				if not start and spot != end:
-					start = spot
-					start.make_start()
+        if algorithm and not paused:
+            try:
+                next(algorithm)  # Step-by-step A*
+            except StopIteration:
+                algorithm = None  # Done
 
-				elif not end and spot != start:
-					end = spot
-					end.make_end()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
 
-				elif spot != end and spot != start:
-					spot.make_barrier()
+            if pygame.mouse.get_pressed()[0]:  # LEFT
+                pos = pygame.mouse.get_pos()
+                row, col = get_clicked_pos(pos, GAP)
+                if row >= WIDTH // GAP or col >= GRID_HEIGHT // GAP:
+                    continue
+                spot = grid[row][col]
+                if not start and spot != end:
+                    start = spot
+                    start.make_start()
+                elif not end and spot != start:
+                    end = spot
+                    end.make_end()
+                elif spot != start and spot != end:
+                    spot.make_barrier()
 
-			elif pygame.mouse.get_pressed()[2]: # RIGHT
-				pos = pygame.mouse.get_pos()
-				row, col = get_clicked_pos(pos, ROWS, width)
-				spot = grid[row][col]
-				spot.reset()
-				if spot == start:
-					start = None
-				elif spot == end:
-					end = None
+            elif pygame.mouse.get_pressed()[2]:  # RIGHT
+                pos = pygame.mouse.get_pos()
+                row, col = get_clicked_pos(pos, GAP)
+                if row >= WIDTH // GAP or col >= GRID_HEIGHT // GAP:
+                    continue
+                spot = grid[row][col]
+                spot.reset()
+                if spot == start:
+                    start = None
+                elif spot == end:
+                    end = None
 
-			if event.type == pygame.KEYDOWN:
-				if event.key == pygame.K_SPACE and start and end:
-					for row in grid:
-						for spot in row:
-							spot.update_neighbors(grid)
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE and start and end and not algorithm:
+                    for row in grid:
+                        for spot in row:
+                            spot.update_neighbors(grid)
+                    from algorithms import astar  # Ensure import here
+                    algorithm = astar.astar_algorithm(lambda: draw(win, grid, ROWS, WIDTH), grid, start, end)
 
-					astar.astar_algorithm(lambda: draw(win, grid, ROWS, width), grid, start, end)
+                elif event.key == pygame.K_c:
+                    start = None
+                    end = None
+                    grid = make_grid(GAP, WIDTH)
+                    algorithm = None
+                    paused = False
 
-				if event.key == pygame.K_c:
-					start = None
-					end = None
-					grid = make_grid(ROWS, width)
+                elif event.key == pygame.K_p:
+                    paused = True
 
-	pygame.quit()
+                elif event.key == pygame.K_r:
+                    paused = False
 
-main(WIN, WIDTH)
+    pygame.quit()
+
+main(WIN)
