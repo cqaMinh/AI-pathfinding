@@ -2,26 +2,30 @@
 # algorithms/bfs.py
 from collections import deque
 import pygame
+import globals
 
-def bfs_algorithms(draw, grid, start, end):
-    queue = deque([start])
+def reconstruct_path(came_from, current, draw):
+    while current in came_from:
+        current = came_from[current]
+        current.make_path()
+        draw()
+
+def bfs_algorithm(draw, grid, start, end):
+    number_of_node_explored = 0
+    queue = [start]
     visited = {start}
     came_from = {}
 
     while queue:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
+        count_state = 0
+        yield  # Yield for each loop iteration
 
-        current = queue.popleft()
+        current = queue.pop(0)
 
         if current == end:
-            while current in came_from:
-                current.make_path()
-                current = came_from[current]
+            reconstruct_path(came_from, end, draw)
             end.make_end()
-            draw()
-            return True
+            return
 
         for neighbor in current.neighbors:
             if neighbor not in visited and not neighbor.is_barrier():
@@ -29,10 +33,14 @@ def bfs_algorithms(draw, grid, start, end):
                 came_from[neighbor] = current
                 queue.append(neighbor)
                 neighbor.make_open()
+                globals.state["number_of_node_explored"] += 1
+
+        count_state += 1
+        draw()
+        print("Breadth-first search algorithm")
+        print(f"Number of nodes explored: {globals.state["number_of_node_explored"]} at state  {count_state}") 
 
         if current != start:
             current.make_closed()
 
-        draw()
-
-    return False
+    return

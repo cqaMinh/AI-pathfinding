@@ -1,7 +1,9 @@
 import pygame
 import math
 from queue import PriorityQueue
-from algorithms import astar, dfs, bfs
+from algorithms import astar, dfs, bfs, ucs
+  
+import globals 
 
 pygame.init()
 
@@ -10,6 +12,8 @@ GRID_HEIGHT = 500
 INSTRUCTION_HEIGHT = 100  # Space for instructions
 WIN = pygame.display.set_mode((WIDTH, GRID_HEIGHT + INSTRUCTION_HEIGHT))
 pygame.display.set_caption("A* Path Finding Algorithm")
+
+
 
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
@@ -123,7 +127,6 @@ def draw_instructions(win, grid_height):
         rendered = font.render(text, True, BLACK)
         win.blit(rendered, (10, grid_height + 10 + i * 25))
 
-
 def draw(win, grid, gap, width, height):
     win.fill(WHITE)
 
@@ -135,7 +138,6 @@ def draw(win, grid, gap, width, height):
     draw_instructions(win, height)
     pygame.display.update()
 
-
 def get_clicked_pos(pos, gap):
 	y, x = pos
 
@@ -143,6 +145,34 @@ def get_clicked_pos(pos, gap):
 	col = x // gap
 
 	return row, col
+
+import os
+
+def load_map_from_file(filename, grid, gap):
+    try:
+        path = os.path.join("maps", filename)
+        with open(path, 'r') as file:
+            lines = file.readlines()
+            start = None
+            end = None
+            for i, line in enumerate(lines):
+                for j, char in enumerate(line.strip()):
+                    if i < len(grid) and j < len(grid[0]):
+                        spot = grid[i][j]
+                        if char == 'x':
+                            spot.make_barrier()
+                        elif char == 's':
+                            spot.make_start()
+                            start = spot
+                        elif char == 'e':
+                            spot.make_end()
+                            end = spot
+                        else:
+                            spot.reset()
+            return start, end
+    except Exception as e:
+        print(f"Lỗi khi tải bản đồ: {e}")
+        return None, None
 
 
 def main(win):
@@ -153,10 +183,14 @@ def main(win):
     end = None
     algorithm = None  # Generator
     paused = False
+    HEIGHT = WIDTH 
 
     run = True
     while run:
         draw(win, grid, GAP, WIDTH, GRID_HEIGHT)
+        start_time = 0
+        end_time = 0
+        time_cost = 0
 
         if algorithm and not paused:
             try:
@@ -194,27 +228,43 @@ def main(win):
                     start = None
                 elif spot == end:
                     end = None
-
+            
             if event.type == pygame.KEYDOWN:
+                start_time = pygame.time.get_ticks()
                 if event.key == pygame.K_SPACE and start and end and not algorithm:
                     for row in grid:
                         for spot in row:
                             spot.update_neighbors(grid)
-                    from algorithms import astar  # Ensure import here
-                    algorithm = astar.astar_algorithm(lambda: draw(win, grid, ROWS, WIDTH), grid, start, end)
+
+                    algorithm = ucs.ucs_algorithm(lambda: draw(win, grid, GRID_HEIGHT // GAP, WIDTH, HEIGHT), grid, start, end)
+                    end_time = pygame.time.get_ticks()
+                    time_cost = end_time - start_time
+                    print(f"A* algorithm started. Time cost: {time_cost} ms")
+                    print(f"Number of nodes explored: {globals.state["number_of_node_explored"]}") 
 
                 elif event.key == pygame.K_c:
                     start = None
                     end = None
-                    grid = make_grid(GAP, WIDTH)
+                    grid = make_grid(GAP, WIDTH, GRID_HEIGHT)
                     algorithm = None
                     paused = False
+
+                elif event.key == pygame.K_l:
+                    grid = make_grid(GAP, WIDTH, GRID_HEIGHT)
+                    start, end = load_map_from_file("map.txt", grid, GAP)
+                    algorithm = None
+                    paused = False
+                    print("Đã tải bản đồ từ file.")
+
 
                 elif event.key == pygame.K_p:
                     paused = True
 
                 elif event.key == pygame.K_r:
                     paused = False
+
+            
+    
 
     pygame.quit()
 
