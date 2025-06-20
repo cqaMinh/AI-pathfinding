@@ -1,7 +1,7 @@
 import pygame
 import math
 from queue import PriorityQueue
-from algorithms import astar, dfs, bfs, ucs
+from algorithms import astar, dfs, bfs, ucs, bi_direction_search, iddfs
   
 import globals 
 
