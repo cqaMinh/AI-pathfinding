@@ -66,7 +66,7 @@ def bi_directional_search_algorithm(draw, grid, start, end):
         if current_end != end:
             current_end.make_closed()
 
-    print("Bi-directional search algorithm")
-    print(f"Number of nodes explored: {globals.state['number_of_node_explored']} at state {count_state}")
+        print("Bi-directional search algorithm")
+        print(f"Number of nodes explored: {globals.state['number_of_node_explored']} at state {count_state}")
     
     return

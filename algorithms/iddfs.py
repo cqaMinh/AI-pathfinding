@@ -37,8 +37,11 @@ def iddfs_algorithm(draw, grid, start, end, max_depth=10):
         yield  # Yield for each loop iteration
 
         if dls(start, depth):
+            print("Depth-limited search algorithm")
+            print(f"Number of nodes explored: {globals.state['number_of_node_explored']} at max depth {max_depth}")
             return
+        
+    print("No path found within the maximum depth limit.")
 
-    print("Depth-limited search algorithm")
-    print(f"Number of nodes explored: {globals.state['number_of_node_explored']} at max depth {max_depth}")
+    
     return

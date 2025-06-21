@@ -47,7 +47,7 @@ def ucs_algorithm(draw, grid, start, end):
         draw()
         if current != start:
             current.make_closed()
-    print("Uniform-cost search algorithm")
-    print(f"Number of nodes explored: {globals.number_of_node_explored} at state {count_state}")
+        print("Uniform-cost search algorithm")
+        print(f"Number of nodes explored: {globals.state["number_of_node_explored"]} at state {count_state}")
 
     return

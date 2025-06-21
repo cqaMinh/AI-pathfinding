@@ -1,15 +1,15 @@
 import pygame
 import math
 from queue import PriorityQueue
-from algorithms import astar, dfs, bfs, ucs, bi_direction_search, iddfs
+from algorithms import astar, dfs, bfs, ucs, bi_direction_search, iddfs, idastar, beamsearch 
   
 import globals 
 
 pygame.init()
 
-WIDTH = 800
+WIDTH =500
 GRID_HEIGHT = 500
-INSTRUCTION_HEIGHT = 100  # Space for instructions
+INSTRUCTION_HEIGHT = 250  # Space for instructions
 WIN = pygame.display.set_mode((WIDTH, GRID_HEIGHT + INSTRUCTION_HEIGHT))
 pygame.display.set_caption("A* Path Finding Algorithm")
 
@@ -119,8 +119,14 @@ def draw_grid(win, gap, width, height):
 def draw_instructions(win, grid_height):
     font = pygame.font.SysFont("consolas", 18)
     instructions = [
-        "SPACE: Start A*     P: Pause     R: Continue     B: Undo path     C: Clear",
-        "Left Click: Place start/end/barriers     Right Click: Remove start/end/barriers",
+        "1. Uniform_Cost Search (UCS): Press 1",
+        "2. Depth-First Search (DFS): Press 2",
+        "3. Breadth-First Search (BFS): Press 3",
+        "4. A* Search: Press 4",
+        "5. Bi-Directional Search: Press 5",
+        "6. Iterative Deepening DFS: Press 6",
+        "7. Iterative Deepening A*: Press 7",
+        "8. Beam Search: Press 8",      
     ]
 
     for i, text in enumerate(instructions):
@@ -158,7 +164,7 @@ def load_map_from_file(filename, grid, gap):
             for i, line in enumerate(lines):
                 for j, char in enumerate(line.strip()):
                     if i < len(grid) and j < len(grid[0]):
-                        spot = grid[i][j]
+                        spot = grid[j][i]
                         if char == 'x':
                             spot.make_barrier()
                         elif char == 's':
@@ -173,30 +179,70 @@ def load_map_from_file(filename, grid, gap):
     except Exception as e:
         print(f"Lỗi khi tải bản đồ: {e}")
         return None, None
-
-
+'''
 def main(win):
     GAP = 20
+    HEIGHT = WIDTH
     grid = make_grid(GAP, WIDTH, GRID_HEIGHT)
 
+    algorithm = None  # Generator
+
+    run = True
+    time_cost = 0
+    start, end = load_map_from_file("map.txt", grid, GAP)
+    
+    for row in grid:
+        for spot in row:
+            spot.update_neighbors(grid)
+        
+    while run:
+        draw(win, grid, GAP, WIDTH, GRID_HEIGHT)
+        
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE and start and end and not algorithm:
+                    start_time = pygame.time.get_ticks()
+                    algorithm = astar.astar_algorithm(lambda: draw(win, grid, GAP, WIDTH, HEIGHT), grid, start, end)
+
+        if algorithm:
+            try:
+                next(algorithm)
+            except StopIteration:
+                algorithm = None
+                end_time = pygame.time.get_ticks()
+                time_cost = end_time - start_time
+                print(f"A* algorithm finished. Time cost: {time_cost} ms")
+
+    pygame.quit()
+'''
+def main(win):
+    GAP = 20
+    WIDTH = 500
+    GRID_HEIGHT = 500
+    HEIGHT = WIDTH
+
+    grid = make_grid(GAP, WIDTH, GRID_HEIGHT)
     start = None
     end = None
     algorithm = None  # Generator
     paused = False
-    HEIGHT = WIDTH 
 
     run = True
     while run:
         draw(win, grid, GAP, WIDTH, GRID_HEIGHT)
-        start_time = 0
-        end_time = 0
-        time_cost = 0
 
         if algorithm and not paused:
             try:
-                next(algorithm)  # Step-by-step A*
+                next(algorithm)  # Step-by-step
             except StopIteration:
                 algorithm = None  # Done
+                end_time = pygame.time.get_ticks()
+                total_time = end_time - start_time
+                print(f"Total time cost: {total_time} ms")
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -228,19 +274,43 @@ def main(win):
                     start = None
                 elif spot == end:
                     end = None
-            
+
             if event.type == pygame.KEYDOWN:
-                start_time = pygame.time.get_ticks()
+                print("Key name:", pygame.key.name(event.key))
+
+
                 if event.key == pygame.K_SPACE and start and end and not algorithm:
                     for row in grid:
                         for spot in row:
                             spot.update_neighbors(grid)
 
-                    algorithm = ucs.ucs_algorithm(lambda: draw(win, grid, GRID_HEIGHT // GAP, WIDTH, HEIGHT), grid, start, end)
-                    end_time = pygame.time.get_ticks()
-                    time_cost = end_time - start_time
-                    print(f"A* algorithm started. Time cost: {time_cost} ms")
-                    print(f"Number of nodes explored: {globals.state["number_of_node_explored"]}") 
+                if start and end and not algorithm:
+                    if event.key in [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4,
+                                     pygame.K_5, pygame.K_6, pygame.K_7, pygame.K_8, 
+                                     pygame.K_KP_1, pygame.K_KP_2, pygame.K_KP_3, pygame.K_KP_4,
+                                     pygame.K_KP_5, pygame.K_KP_6, pygame.K_KP_7, pygame.K_KP_8]:
+                        start_time = pygame.time.get_ticks()
+
+                        if event.key == pygame.K_1 or event.key == pygame.K_KP_1:
+                            algorithm = ucs.ucs_algorithm(lambda: draw(win, grid, GRID_HEIGHT // GAP, WIDTH, HEIGHT), grid, start, end)
+                        elif event.key == pygame.K_2 or event.key == pygame.K_KP_2:
+                            algorithm = dfs.dfs_algorithm(lambda: draw(win, grid, GRID_HEIGHT // GAP, WIDTH, HEIGHT), grid, start, end)
+                        elif event.key == pygame.K_3 or event.key == pygame.K_KP_3:
+                            algorithm = bfs.bfs_algorithm(lambda: draw(win, grid, GRID_HEIGHT // GAP, WIDTH, HEIGHT), grid, start, end)
+                        elif event.key == pygame.K_4 or event.key == pygame.K_KP_4:
+                            algorithm = astar.astar_algorithm(lambda: draw(win, grid, GRID_HEIGHT // GAP, WIDTH, HEIGHT), grid, start, end)
+                        elif event.key == pygame.K_5 or event.key == pygame.K_KP_5:
+                            algorithm = bi_direction_search.bi_directional_search_algorithm(lambda: draw(win, grid, GRID_HEIGHT // GAP, WIDTH, HEIGHT), grid, start, end)
+                        elif event.key == pygame.K_6 or event.key == pygame.K_KP_6:
+                            algorithm = iddfs.iddfs_algorithm(lambda: draw(win, grid, GRID_HEIGHT // GAP, WIDTH, HEIGHT), grid, start, end)
+                        elif event.key == pygame.K_7 or event.key == pygame.K_KP_7:
+                            algorithm = idastar.ida_algorithm(lambda: draw(win, grid, GRID_HEIGHT // GAP, WIDTH, HEIGHT), grid, start, end)
+                        elif event.key == pygame.K_8 or event.key == pygame.K_KP_8:
+                            algorithm = beamsearch.beam_search_algorithm(lambda: draw(win, grid, GRID_HEIGHT // GAP, WIDTH, HEIGHT), grid, start, end)
+
+                        end_time = pygame.time.get_ticks()
+                        time_cost = end_time - start_time
+                        
 
                 elif event.key == pygame.K_c:
                     start = None
@@ -249,22 +319,11 @@ def main(win):
                     algorithm = None
                     paused = False
 
-                elif event.key == pygame.K_l:
-                    grid = make_grid(GAP, WIDTH, GRID_HEIGHT)
-                    start, end = load_map_from_file("map.txt", grid, GAP)
-                    algorithm = None
-                    paused = False
-                    print("Đã tải bản đồ từ file.")
-
-
                 elif event.key == pygame.K_p:
                     paused = True
 
                 elif event.key == pygame.K_r:
                     paused = False
-
-            
-    
 
     pygame.quit()
 
