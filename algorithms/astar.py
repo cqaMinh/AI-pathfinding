@@ -59,7 +59,7 @@ def astar_algorithm(draw, grid, start, end):
 
         draw()
         print("A* algorithm")
-        print(f"Number of nodes explored: {globals.state["number_of_node_explored"]} at state  {count_state}") 
+        print(f"Number of nodes explored: {globals.state['number_of_node_explored']} at state  {count_state}") 
         if current != start:
             current.make_closed()
     

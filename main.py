@@ -7,10 +7,10 @@ import globals
 
 pygame.init()
 
-WIDTH =500
-GRID_HEIGHT = 500
-INSTRUCTION_HEIGHT = 250  # Space for instructions
-WIN = pygame.display.set_mode((WIDTH, GRID_HEIGHT + INSTRUCTION_HEIGHT))
+WIDTH = 800
+HEIGHT = 500
+INSTRUCTION_HEIGHT = 270  # Space for instructions
+WIN = pygame.display.set_mode((WIDTH, HEIGHT + INSTRUCTION_HEIGHT))
 pygame.display.set_caption("A* Path Finding Algorithm")
 
 
@@ -81,16 +81,15 @@ class Spot:
 
 	def update_neighbors(self, grid):
 		self.neighbors = []
-		if self.row < self.total_rows - 1 and not grid[self.row + 1][self.col].is_barrier(): # DOWN
+		rows = len(grid)
+		cols = len(grid[0])
+		if self.row < rows - 1 and not grid[self.row + 1][self.col].is_barrier():  # DOWN
 			self.neighbors.append(grid[self.row + 1][self.col])
-
-		if self.row > 0 and not grid[self.row - 1][self.col].is_barrier(): # UP
+		if self.row > 0 and not grid[self.row - 1][self.col].is_barrier():  # UP
 			self.neighbors.append(grid[self.row - 1][self.col])
-
-		if self.col < self.total_rows - 1 and not grid[self.row][self.col + 1].is_barrier(): # RIGHT
+		if self.col < cols - 1 and not grid[self.row][self.col + 1].is_barrier():  # RIGHT
 			self.neighbors.append(grid[self.row][self.col + 1])
-
-		if self.col > 0 and not grid[self.row][self.col - 1].is_barrier(): # LEFT
+		if self.col > 0 and not grid[self.row][self.col - 1].is_barrier():  # LEFT
 			self.neighbors.append(grid[self.row][self.col - 1])
 
 	def __lt__(self, other):
@@ -116,22 +115,26 @@ def draw_grid(win, gap, width, height):
         for j in range(rows):
             pygame.draw.line(win, GREY, (j * gap, 0), (j * gap, height))
 
-def draw_instructions(win, grid_height):
+def draw_instructions(win, HEIGHT):
     font = pygame.font.SysFont("consolas", 18)
     instructions = [
-        "1. Uniform_Cost Search (UCS): Press 1",
-        "2. Depth-First Search (DFS): Press 2",
-        "3. Breadth-First Search (BFS): Press 3",
-        "4. A* Search: Press 4",
-        "5. Bi-Directional Search: Press 5",
-        "6. Iterative Deepening DFS: Press 6",
-        "7. Iterative Deepening A*: Press 7",
-        "8. Beam Search: Press 8",      
+        "Press 1: Uniform_Cost Search (UCS)",
+        "Press 2: Depth-First Search (DFS)",
+        "Press 3: Breadth-First Search (BFS)",
+        "Press 4: A* Search",
+        "Press 5: Bi-Directional Search",
+        "Press 6: Iterative Deepening DFS",
+        "Press 7: Iterative Deepening A*",
+        "Press 8: Beam Search", 
+        "",
+        "SPACE: Pause/Resume     C: Clear",
+        "Left Click: Place start/end/barriers",
+		"Right Click: Remove start/end/barriers",  
     ]
 
     for i, text in enumerate(instructions):
         rendered = font.render(text, True, BLACK)
-        win.blit(rendered, (10, grid_height + 10 + i * 25))
+        win.blit(rendered, (10, HEIGHT + 10 + i * 20))
 
 def draw(win, grid, gap, width, height):
     win.fill(WHITE)
@@ -179,152 +182,108 @@ def load_map_from_file(filename, grid, gap):
     except Exception as e:
         print(f"Lỗi khi tải bản đồ: {e}")
         return None, None
-'''
+
 def main(win):
-    GAP = 20
-    HEIGHT = WIDTH
-    grid = make_grid(GAP, WIDTH, GRID_HEIGHT)
+	GAP = 20
+	ROWS = WIDTH // GAP
+	COLS = HEIGHT // GAP
 
-    algorithm = None  # Generator
+	grid = make_grid(GAP, WIDTH, HEIGHT)
+	start = None
+	end = None
+	algorithm = None
+	paused = False
 
-    run = True
-    time_cost = 0
-    start, end = load_map_from_file("map.txt", grid, GAP)
-    
-    for row in grid:
-        for spot in row:
-            spot.update_neighbors(grid)
-        
-    while run:
-        draw(win, grid, GAP, WIDTH, GRID_HEIGHT)
-        
+	run = True
+	start_time = None
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                run = False
+	algo_mapping = {
+		pygame.K_1: ucs.ucs_algorithm,
+		pygame.K_2: dfs.dfs_algorithm,
+		pygame.K_3: bfs.bfs_algorithm,
+		pygame.K_4: astar.astar_algorithm,
+		pygame.K_5: bi_direction_search.bi_directional_search_algorithm,
+		pygame.K_6: iddfs.iddfs_algorithm,
+		pygame.K_7: idastar.ida_algorithm,
+		pygame.K_8: beamsearch.beam_search_algorithm,
+		pygame.K_KP_1: ucs.ucs_algorithm,
+		pygame.K_KP_2: dfs.dfs_algorithm,
+		pygame.K_KP_3: bfs.bfs_algorithm,
+		pygame.K_KP_4: astar.astar_algorithm,
+		pygame.K_KP_5: bi_direction_search.bi_directional_search_algorithm,
+		pygame.K_KP_6: iddfs.iddfs_algorithm,
+		pygame.K_KP_7: idastar.ida_algorithm,
+		pygame.K_KP_8: beamsearch.beam_search_algorithm,
+	}
 
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE and start and end and not algorithm:
-                    start_time = pygame.time.get_ticks()
-                    algorithm = astar.astar_algorithm(lambda: draw(win, grid, GAP, WIDTH, HEIGHT), grid, start, end)
+	while run:
+		draw(win, grid, GAP, WIDTH, HEIGHT)
 
-        if algorithm:
-            try:
-                next(algorithm)
-            except StopIteration:
-                algorithm = None
-                end_time = pygame.time.get_ticks()
-                time_cost = end_time - start_time
-                print(f"A* algorithm finished. Time cost: {time_cost} ms")
+		if algorithm and not paused:
+			try:
+				next(algorithm)
+			except StopIteration:
+				algorithm = None
+				end_time = pygame.time.get_ticks()
+				total_time = end_time - start_time
+				print(f"Total time cost: {total_time} ms")
 
-    pygame.quit()
-'''
-def main(win):
-    GAP = 20
-    WIDTH = 500
-    GRID_HEIGHT = 500
-    HEIGHT = WIDTH
+		for event in pygame.event.get():
+			if event.type == pygame.QUIT:
+				run = False
 
-    grid = make_grid(GAP, WIDTH, GRID_HEIGHT)
-    start = None
-    end = None
-    algorithm = None  # Generator
-    paused = False
+			if pygame.mouse.get_pressed()[0]:  # LEFT
+				pos = pygame.mouse.get_pos()
+				row, col = get_clicked_pos(pos, GAP)
+				if row >= ROWS or col >= COLS:
+					continue
+				spot = grid[row][col]
+				if not start and spot != end:
+					start = spot
+					start.make_start()
+				elif not end and spot != start:
+					end = spot
+					end.make_end()
+				elif spot != start and spot != end:
+					spot.make_barrier()
 
-    run = True
-    while run:
-        draw(win, grid, GAP, WIDTH, GRID_HEIGHT)
+			elif pygame.mouse.get_pressed()[2]:  # RIGHT
+				pos = pygame.mouse.get_pos()
+				row, col = get_clicked_pos(pos, GAP)
+				if row >= ROWS or col >= COLS:
+					continue
+				spot = grid[row][col]
+				spot.reset()
+				if spot == start:
+					start = None
+				elif spot == end:
+					end = None
 
-        if algorithm and not paused:
-            try:
-                next(algorithm)  # Step-by-step
-            except StopIteration:
-                algorithm = None  # Done
-                end_time = pygame.time.get_ticks()
-                total_time = end_time - start_time
-                print(f"Total time cost: {total_time} ms")
+			if event.type == pygame.KEYDOWN:
+				key = event.key
+				print("Key name:", pygame.key.name(key))
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                run = False
+				# Start algorithm with 1–8 keys
+				if key in algo_mapping and start and end and not algorithm:
+					for row in grid:
+						for spot in row:
+							spot.update_neighbors(grid)
+					start_time = pygame.time.get_ticks()
+					algorithm = algo_mapping[key](lambda: draw(win, grid, GAP, WIDTH, HEIGHT), grid, start, end)
+					paused = False
 
-            if pygame.mouse.get_pressed()[0]:  # LEFT
-                pos = pygame.mouse.get_pos()
-                row, col = get_clicked_pos(pos, GAP)
-                if row >= WIDTH // GAP or col >= GRID_HEIGHT // GAP:
-                    continue
-                spot = grid[row][col]
-                if not start and spot != end:
-                    start = spot
-                    start.make_start()
-                elif not end and spot != start:
-                    end = spot
-                    end.make_end()
-                elif spot != start and spot != end:
-                    spot.make_barrier()
+				# Pause/resume
+				elif key == pygame.K_SPACE and algorithm:
+					paused = not paused
 
-            elif pygame.mouse.get_pressed()[2]:  # RIGHT
-                pos = pygame.mouse.get_pos()
-                row, col = get_clicked_pos(pos, GAP)
-                if row >= WIDTH // GAP or col >= GRID_HEIGHT // GAP:
-                    continue
-                spot = grid[row][col]
-                spot.reset()
-                if spot == start:
-                    start = None
-                elif spot == end:
-                    end = None
+				# Clear grid
+				elif key == pygame.K_c:
+					start = None
+					end = None
+					grid = make_grid(GAP, WIDTH, HEIGHT)
+					algorithm = None
+					paused = False
 
-            if event.type == pygame.KEYDOWN:
-                print("Key name:", pygame.key.name(event.key))
-
-
-                if event.key == pygame.K_SPACE and start and end and not algorithm:
-                    for row in grid:
-                        for spot in row:
-                            spot.update_neighbors(grid)
-
-                if start and end and not algorithm:
-                    if event.key in [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4,
-                                     pygame.K_5, pygame.K_6, pygame.K_7, pygame.K_8, 
-                                     pygame.K_KP_1, pygame.K_KP_2, pygame.K_KP_3, pygame.K_KP_4,
-                                     pygame.K_KP_5, pygame.K_KP_6, pygame.K_KP_7, pygame.K_KP_8]:
-                        start_time = pygame.time.get_ticks()
-
-                        if event.key == pygame.K_1 or event.key == pygame.K_KP_1:
-                            algorithm = ucs.ucs_algorithm(lambda: draw(win, grid, GRID_HEIGHT // GAP, WIDTH, HEIGHT), grid, start, end)
-                        elif event.key == pygame.K_2 or event.key == pygame.K_KP_2:
-                            algorithm = dfs.dfs_algorithm(lambda: draw(win, grid, GRID_HEIGHT // GAP, WIDTH, HEIGHT), grid, start, end)
-                        elif event.key == pygame.K_3 or event.key == pygame.K_KP_3:
-                            algorithm = bfs.bfs_algorithm(lambda: draw(win, grid, GRID_HEIGHT // GAP, WIDTH, HEIGHT), grid, start, end)
-                        elif event.key == pygame.K_4 or event.key == pygame.K_KP_4:
-                            algorithm = astar.astar_algorithm(lambda: draw(win, grid, GRID_HEIGHT // GAP, WIDTH, HEIGHT), grid, start, end)
-                        elif event.key == pygame.K_5 or event.key == pygame.K_KP_5:
-                            algorithm = bi_direction_search.bi_directional_search_algorithm(lambda: draw(win, grid, GRID_HEIGHT // GAP, WIDTH, HEIGHT), grid, start, end)
-                        elif event.key == pygame.K_6 or event.key == pygame.K_KP_6:
-                            algorithm = iddfs.iddfs_algorithm(lambda: draw(win, grid, GRID_HEIGHT // GAP, WIDTH, HEIGHT), grid, start, end)
-                        elif event.key == pygame.K_7 or event.key == pygame.K_KP_7:
-                            algorithm = idastar.ida_algorithm(lambda: draw(win, grid, GRID_HEIGHT // GAP, WIDTH, HEIGHT), grid, start, end)
-                        elif event.key == pygame.K_8 or event.key == pygame.K_KP_8:
-                            algorithm = beamsearch.beam_search_algorithm(lambda: draw(win, grid, GRID_HEIGHT // GAP, WIDTH, HEIGHT), grid, start, end)
-
-                        end_time = pygame.time.get_ticks()
-                        time_cost = end_time - start_time
-                        
-
-                elif event.key == pygame.K_c:
-                    start = None
-                    end = None
-                    grid = make_grid(GAP, WIDTH, GRID_HEIGHT)
-                    algorithm = None
-                    paused = False
-
-                elif event.key == pygame.K_p:
-                    paused = True
-
-                elif event.key == pygame.K_r:
-                    paused = False
-
-    pygame.quit()
+	pygame.quit()
 
 main(WIN)

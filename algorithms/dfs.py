@@ -35,7 +35,7 @@ def dfs_algorithm(draw, grid, start, end):
         count_state += 1
         draw()
         print("Depth-first search algorithm")
-        print(f"Number of nodes explored: {globals.state["number_of_node_explored"]} at state  {count_state}") 
+        print(f"Number of nodes explored: {globals.state['number_of_node_explored']} at state  {count_state}") 
 
         if current != start:
             current.make_closed()
