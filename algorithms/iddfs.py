@@ -8,7 +8,7 @@ def reconstruct_path(came_from, current, draw):
         current.make_path()
         draw()
 
-def iddfs_algorithm(draw, grid, start, end, max_depth=10):
+def iddfs_algorithm(draw, grid, start, end):
     def dls(node, depth):
         if node == end:
             reconstruct_path(came_from, end, draw)
@@ -23,6 +23,7 @@ def iddfs_algorithm(draw, grid, start, end, max_depth=10):
                 came_from[neighbor] = node
                 neighbor.make_open()
                 globals.state["number_of_node_explored"] += 1
+                draw()
 
                 if dls(neighbor, depth - 1):
                     return True
@@ -31,17 +32,21 @@ def iddfs_algorithm(draw, grid, start, end, max_depth=10):
             node.make_closed()
         return False
 
-    for depth in range(max_depth):
+    depth = 0
+    while True:
         visited = {start}
         came_from = {}
-        yield  # Yield for each loop iteration
+        globals.state["number_of_node_explored"] = 0  # Reset for this depth
+
+        print(f"[IDDFS] Trying depth = {depth}")
+        yield  # Cho phép cập nhật GUI ở mỗi vòng lặp
 
         if dls(start, depth):
-            print("Depth-limited search algorithm")
-            print(f"Number of nodes explored: {globals.state['number_of_node_explored']} at max depth {max_depth}")
+            print(f"Path found at depth {depth}")
+            print(f"Nodes explored: {globals.state['number_of_node_explored']}")
             return
-        
-    print("No path found within the maximum depth limit.")
 
-    
-    return
+        print(f"No path at depth {depth}")
+        print(f"Nodes explored: {globals.state['number_of_node_explored']}")
+
+        depth += 1
