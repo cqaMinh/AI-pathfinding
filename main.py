@@ -11,7 +11,7 @@ WIDTH =500
 GRID_HEIGHT = 500
 INSTRUCTION_HEIGHT = 250  # Space for instructions
 WIN = pygame.display.set_mode((WIDTH, GRID_HEIGHT + INSTRUCTION_HEIGHT))
-pygame.display.set_caption("A* Path Finding Algorithm")
+pygame.display.set_caption("Path Finding Algorithm visualization")
 
 
 
