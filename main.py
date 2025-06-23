@@ -1,7 +1,7 @@
 import pygame
 import math
 from queue import PriorityQueue
-from algorithms import astar, dfs, bfs, ucs, bi_direction_search, iddfs, idastar, beamsearch 
+from algorithms import astar, dfs, bfs, ucs, bi_direction_search, iddfs, idastar, beamsearch, greedy_bfs 
   
 import globals 
 
@@ -124,7 +124,7 @@ def draw_instructions(win, HEIGHT):
         "Press 4: A* Search",
         "Press 5: Bi-Directional Search",
         "Press 6: Iterative Deepening DFS",
-        "Press 7: Iterative Deepening A*",
+        "Press 7: Greedy Best-First Search",
         "Press 8: Beam Search", 
         "",
         "SPACE: Pause/Resume     C: Clear",
@@ -204,7 +204,7 @@ def main(win):
 		pygame.K_4: astar.astar_algorithm,
 		pygame.K_5: bi_direction_search.bi_directional_search_algorithm,
 		pygame.K_6: iddfs.iddfs_algorithm,
-		pygame.K_7: idastar.ida_algorithm,
+		pygame.K_7: greedy_bfs.greedy_bfs_algorithm,
 		pygame.K_8: beamsearch.beam_search_algorithm,
 		pygame.K_KP_1: ucs.ucs_algorithm,
 		pygame.K_KP_2: dfs.dfs_algorithm,
@@ -212,7 +212,7 @@ def main(win):
 		pygame.K_KP_4: astar.astar_algorithm,
 		pygame.K_KP_5: bi_direction_search.bi_directional_search_algorithm,
 		pygame.K_KP_6: iddfs.iddfs_algorithm,
-		pygame.K_KP_7: idastar.ida_algorithm,
+		pygame.K_KP_7: greedy_bfs.greedy_bfs_algorithm,
 		pygame.K_KP_8: beamsearch.beam_search_algorithm,
 	}
 
